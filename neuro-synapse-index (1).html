@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEURO-SYNAPSE // Autonomous Plasticity Sandbox</title>
+<style>
+:root{
+  --bg:#050811; --cyan:#00F0FF; --green:#00FF66; --mag:#FF007F; --lav:#b9a7ff;
+  --text:#cfe8ee; --dim:#7f97a5; --line:rgba(0,240,255,.22);
+  --mono:"JetBrains Mono","Cascadia Code","SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:"Space Grotesk","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --acc:0,240,255; --accent:rgb(var(--acc));
+}
+*{box-sizing:border-box;margin:0}
+html,body{min-height:100%}
+body{background:radial-gradient(900px 500px at 8% 0%,rgba(255,0,127,.06),transparent 60%),radial-gradient(900px 600px at 95% 10%,rgba(0,240,255,.06),transparent 60%),var(--bg);
+  color:var(--text);font-family:var(--sans);overflow-x:hidden}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(0deg,rgba(0,0,0,.07) 0 1px,transparent 1px 4px);mix-blend-mode:multiply}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:49;background:radial-gradient(ellipse at center,transparent 65%,rgba(0,0,0,.35))}
+.aurora{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(rgba(0,240,255,.035) 1px,transparent 1px) 0 0/48px 48px,linear-gradient(90deg,rgba(0,240,255,.035) 1px,transparent 1px) 0 0/48px 48px;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 40%,#000 25%,transparent 80%);mask-image:radial-gradient(ellipse at 50% 40%,#000 25%,transparent 80%)}
+.app{position:relative;z-index:1;display:grid;gap:18px;padding:22px;max-width:1700px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;padding:2px 8px}
+h1{font:700 clamp(1.1rem,2.2vw,1.7rem) var(--sans);letter-spacing:.2em;
+  background:linear-gradient(95deg,#00F0FF,#b9a7ff 45%,#FF007F 75%,#00F0FF);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:flow 10s linear infinite}
+h1 span{font:400 .8rem var(--mono);letter-spacing:.12em;-webkit-text-fill-color:var(--dim);color:var(--dim)}
+@keyframes flow{to{background-position:250% 0}}
+.status{font:.75rem var(--mono);color:var(--dim)}
+.status b{color:var(--accent);font-weight:500}
+main{display:grid;grid-template-columns:290px minmax(0,1fr) 410px;gap:18px;align-items:start}
+.panel{border-radius:12px;border:1px solid transparent;padding:22px;display:flex;flex-direction:column;gap:20px;position:relative;
+  background:linear-gradient(rgba(8,14,32,.78),rgba(6,10,24,.84)) padding-box,linear-gradient(140deg,rgba(var(--acc),.6),rgba(185,167,255,.14) 42%,rgba(255,0,127,.45)) border-box;
+  box-shadow:0 8px 30px rgba(0,0,0,.45);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.panel h2{font:600 .82rem var(--mono);letter-spacing:.12em;color:var(--accent);display:flex;flex-direction:column}
+.panel h2 small{font:400 .78rem/1.5 var(--sans);letter-spacing:0;color:var(--dim);margin-top:7px}
+
+/* sliders */
+.ctl{--c:var(--cyan)}
+.ctl[data-k=stress]{--c:var(--mag)} .ctl[data-k=learn]{--c:var(--green)} .ctl[data-k=rest]{--c:var(--lav)} .ctl[data-k=social]{--c:#a8d5ba}
+.ctl label{display:flex;justify-content:space-between;font:.78rem var(--sans);letter-spacing:.04em;margin-bottom:10px}
+.ctl output{font:600 .78rem var(--mono);color:var(--c)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:6px;background:linear-gradient(90deg,transparent,var(--c)) 0 0/var(--p,50%) 100% no-repeat,rgba(255,255,255,.09)}
+input[type=range]::-moz-range-track{height:6px;border-radius:6px;background:rgba(255,255,255,.09)}
+input[type=range]::-moz-range-progress{height:6px;border-radius:6px;background:var(--c)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;border:0;background:radial-gradient(circle at 35% 35%,#fff 0 18%,var(--c) 45%,rgba(0,0,0,.2) 100%);box-shadow:0 0 0 3px rgba(255,255,255,.1)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff 0 18%,var(--c) 50%)}
+input:focus-visible,button:focus-visible,textarea:focus-visible{outline:1px dashed var(--accent);outline-offset:3px}
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+.presets button{flex:1;font:.75rem var(--sans);color:var(--text);background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:20px;padding:7px 4px;cursor:pointer;transition:all .2s}
+.presets button:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+.meters{display:grid;gap:10px;font:.72rem var(--mono);color:var(--dim)}
+.bar{height:5px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,.08);margin-top:5px}
+.bar i{display:block;height:100%;width:0;border-radius:5px;background:linear-gradient(90deg,var(--lav),var(--accent))}
+
+/* core */
+.core{padding:0;position:sticky;top:14px;height:calc(100vh - 100px);min-height:560px;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 45%,rgba(20,32,70,.55),rgba(4,7,16,.92) 75%) padding-box,linear-gradient(140deg,rgba(var(--acc),.6),rgba(185,167,255,.14) 42%,rgba(255,0,127,.45)) border-box}
+.core canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;border-radius:12px}
+.hud{position:absolute;left:0;right:0;top:16px;display:flex;justify-content:center;pointer-events:none;z-index:2}
+.state{font:600 .72rem var(--mono);letter-spacing:.1em;color:var(--accent);padding:4px 14px;border:1px solid var(--accent);border-radius:20px;background:rgba(0,0,0,.4);transition:color .8s,border-color .8s}
+.callout{position:absolute;left:18px;top:16px;z-index:2;max-width:min(300px,42%);display:flex;flex-direction:column;gap:3px;pointer-events:none}
+.callout small{font:.66rem var(--mono);letter-spacing:.14em;color:var(--dim)}
+.callout b{font:700 1.2rem var(--sans);letter-spacing:.04em;color:#fff}
+.callout span{font:.78rem/1.45 var(--sans);color:#9fb6c2}
+.dock{position:absolute;right:14px;bottom:12px;z-index:6;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.btn{font:600 .7rem var(--mono);letter-spacing:.08em;color:var(--text);background:rgba(0,0,0,.5);border:1px solid var(--accent);border-radius:20px;padding:9px 14px;cursor:pointer;transition:all .2s}
+.btn:hover{color:#fff;transform:translateY(-1px)}
+.btn.on{background:linear-gradient(100deg,var(--accent),var(--lav));color:#050811;border:0}
+.hint{position:absolute;bottom:16px;left:0;right:0;text-align:center;font:.68rem var(--mono);color:var(--dim);pointer-events:none;z-index:2}
+
+/* vault */
+textarea{width:100%;min-height:120px;resize:vertical;background:rgba(2,6,16,.55);border:1px solid var(--line);border-radius:8px;color:var(--text);font:.95rem/1.65 var(--sans);padding:14px;transition:border-color .3s}
+textarea::placeholder{color:#50707c}
+textarea:focus{outline:0;border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.fc{font:.72rem var(--sans);color:var(--text);background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:16px;padding:5px 11px;cursor:pointer;transition:all .2s}
+.fc:hover{border-color:var(--accent);color:var(--accent);background:rgba(255,255,255,.07)}
+.tx{position:relative;overflow:hidden;font:700 .8rem var(--sans);letter-spacing:.14em;color:#050811;border:0;border-radius:8px;padding:14px;cursor:pointer;background:linear-gradient(100deg,var(--accent),var(--lav) 60%,#ff7ac0);transition:transform .15s}
+.tx:hover{transform:translateY(-1px)} .tx:active{transform:scale(.98)}
+.counter{font:.74rem var(--mono);color:var(--green)}
+.feed{min-height:80px;max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:10px;font:.78rem/1.5 var(--mono);scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.entry{border-left:2px solid var(--c,var(--cyan));padding:8px 10px;background:linear-gradient(90deg,rgba(255,255,255,.04),transparent);border-radius:0 8px 8px 0;animation:in .5s}
+.entry time{display:block;color:var(--dim);font-size:.66rem}
+.entry em{font-style:normal;color:var(--c,var(--cyan));font-size:.66rem}
+.empty{color:var(--dim)}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+
+/* ===== insight card ===== */
+.ins{display:flex;flex-direction:column;gap:18px;border:1px solid rgba(var(--ic,var(--acc)),.35);border-radius:14px;padding:20px;
+  background:linear-gradient(165deg,rgba(var(--ic,var(--acc)),.10),rgba(0,0,0,.28) 60%);transition:border-color .8s,background .8s}
+.ins>*{animation:in .6s both}
+.ins>*:nth-child(2){animation-delay:.05s}.ins>*:nth-child(3){animation-delay:.1s}.ins>*:nth-child(4){animation-delay:.15s}
+.ins>*:nth-child(5){animation-delay:.2s}.ins>*:nth-child(6){animation-delay:.25s}.ins>*:nth-child(7){animation-delay:.3s}.ins>*:nth-child(8){animation-delay:.35s}.ins>*:nth-child(9){animation-delay:.4s}
+.itop{display:flex;align-items:center;gap:12px}
+.orb{flex:none;width:38px;height:38px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,rgb(var(--ic)) 40%,rgba(var(--ic),.15) 72%);animation:beat 2.6s ease-in-out infinite}
+@keyframes beat{50%{transform:scale(.88);opacity:.8}}
+.itop small{display:block;font:.62rem var(--mono);letter-spacing:.16em;color:var(--dim)}
+.itop h3{font:700 1.25rem/1.15 var(--sans);color:rgb(var(--ic));letter-spacing:.01em}
+.ihead{font:italic 400 .98rem/1.55 var(--sans);color:#e6f3f7}
+.spec{position:relative;height:6px;border-radius:6px;background:linear-gradient(90deg,#FF007F,#b9a7ff 50%,#00FF66)}
+.spec i{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 12px #fff;transition:left .8s cubic-bezier(.2,.8,.2,1)}
+.spl{display:flex;justify-content:space-between;font:.62rem var(--mono);color:var(--dim);margin-top:-10px}
+.sec{font:600 .66rem var(--mono);letter-spacing:.16em;color:var(--accent);display:flex;align-items:center;gap:10px}
+.sec::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+.regs{display:grid;gap:8px}
+.reg{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;font:.82rem var(--sans);color:var(--text);background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:9px 12px;cursor:pointer;transition:all .2s}
+.reg:hover{border-color:rgba(var(--ic),.6);background:rgba(255,255,255,.06)}
+.reg b{font-weight:600}.reg em{font:.68rem var(--mono);font-style:normal;color:var(--dim)}
+.reg span{grid-column:1/-1;font-size:.74rem;color:#8aa0ac;line-height:1.4}
+.reg .at{grid-column:1/-1;height:3px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.reg .at i{display:block;height:100%;width:0;background:rgb(var(--ic));border-radius:3px}
+.chem{display:grid;grid-template-columns:92px 1fr 34px;gap:10px;align-items:center;font:.74rem var(--sans);margin-bottom:9px}
+.chem small{display:block;font:.6rem var(--mono);color:var(--dim)}
+.chem .t{height:7px;border-radius:7px;background:rgba(255,255,255,.07);position:relative;overflow:hidden}
+.chem .t i{display:block;height:100%;width:0;border-radius:7px}
+.chem .t::after{content:"";position:absolute;left:40%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.35)}
+.chem output{font:.7rem var(--mono);text-align:right}
+.story{list-style:none;padding:0;display:flex;flex-direction:column;gap:14px;counter-reset:s}
+.story li{position:relative;padding-left:40px;counter-increment:s}
+.story li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 .74rem var(--mono);color:#050811;background:rgb(var(--ic))}
+.story li::after{content:"";position:absolute;left:12px;top:30px;bottom:-12px;width:1px;background:linear-gradient(rgba(var(--ic),.5),transparent)}
+.story li:last-child::after{display:none}
+.story b{display:block;font:600 .88rem var(--sans);color:#fff;margin-bottom:3px}
+.story span{font:.82rem/1.6 var(--sans);color:#a9bfca}
+.ins p.feel{font:.86rem/1.6 var(--sans);color:#b8ccd5;border-left:2px solid rgba(var(--ic),.6);padding-left:12px}
+.tips{list-style:none;padding:0;display:flex;flex-direction:column;gap:10px}
+.tips li{padding-left:12px;border-left:2px solid var(--accent);font:.84rem/1.5 var(--sans)}
+.tips b{display:block;color:#fff;font-weight:600}.tips span{color:#8aa0ac;font-size:.78rem}
+.mixrow{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font:.68rem var(--mono);padding:4px 10px;border-radius:14px;border:1px solid currentColor}
+.fine{font:.7rem/1.5 var(--sans);color:#6f8794;font-style:italic}
+.care{border-color:rgba(185,167,255,.5)}
+
+@media(max-width:1250px){main{grid-template-columns:1fr 1fr}.core{grid-column:1/-1;order:-1;position:relative;top:0;height:560px}}
+@media(max-width:760px){main{grid-template-columns:1fr}.app{padding:12px}.core{height:480px}.callout{max-width:60%}.hint{display:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="aurora" aria-hidden="true"></div>
+<div class="app">
+  <header>
+    <h1>NEURO-SYNAPSE <span>// Autonomous Plasticity Sandbox</span></h1>
+    <div class="status"><b id="clock">00:00</b> &nbsp;<b id="fps">--</b> fps</div>
+  </header>
+  <main>
+    <section class="panel" aria-labelledby="hc">
+      <h2 id="hc">NEUROCHEMICAL CONSOLE<small>Set today's inputs, or just write how you feel. The brain responds either way.</small></h2>
+      <div class="ctl" data-k="stress"><label for="stress">Chronic Stress <output></output></label><input id="stress" type="range" min="0" max="100" value="25"></div>
+      <div class="ctl" data-k="learn"><label for="learn">Novel Learning <output></output></label><input id="learn" type="range" min="0" max="100" value="55"></div>
+      <div class="ctl" data-k="rest"><label for="rest">Meditative Rest <output></output></label><input id="rest" type="range" min="0" max="100" value="55"></div>
+      <div class="ctl" data-k="social"><label for="social">Social Connection <output></output></label><input id="social" type="range" min="0" max="100" value="50"></div>
+      <div class="presets"><button data-p="burnout">Burnout</button><button data-p="balance">Balanced</button><button data-p="recovery">Recovery</button></div>
+      <div class="meters">
+        <div>Plasticity index <span id="mPl" style="float:right">0</span><div class="bar"><i id="bPl"></i></div></div>
+        <div>Stress load <span id="mSt" style="float:right">0</span><div class="bar"><i id="bSt" style="background:#FF007F"></i></div></div>
+        <div>Strong synapses <span id="mSy" style="float:right">0</span></div>
+        <div>Synaptic strength <span id="mW" style="float:right">0</span><div class="bar"><i id="bW"></i></div></div>
+        <div>LTP events <span id="mLt" style="float:right">0</span></div>
+      </div>
+    </section>
+
+    <section class="panel core" aria-label="Brain visualization">
+      <canvas id="cv" role="img" aria-label="Animated brain. Regions light up with your emotions and the view zooms into the affected region. Hover a region for its name, click to zoom."></canvas>
+      <div class="callout"><small id="cEye">WHOLE BRAIN</small><b id="cName">Waiting for a signal</b><span id="cRole">Write how you feel on the right, or tap a feeling.</span></div>
+      <div class="hud"><span class="state" id="state">LISTENING</span></div>
+      <div class="dock"><button class="btn" id="bWide">◎ WHOLE BRAIN</button><button class="btn on" id="bAuto">⌖ AUTO-FOCUS</button></div>
+      <div class="hint">hover a region · click to zoom in · click empty space to zoom out</div>
+    </section>
+
+    <section class="panel" aria-labelledby="hv">
+      <h2 id="hv">EXPERIENTIAL DATA VAULT<small>Stored only in this browser tab. Write anything: love, fear, pride, heartbreak, a rough day.</small></h2>
+      <textarea id="log" aria-label="Journal entry" placeholder="// LOG YOUR JOURNEY: how are you feeling right now?"></textarea>
+      <div class="chips" id="fchips" aria-label="Quick feelings"></div>
+      <div class="status" id="scan">0 chars · ctrl+enter to transmit</div>
+      <button class="tx" id="send">TRANSMIT TO DATA VAULT</button>
+      <div class="ins" id="ins" aria-live="polite"></div>
+      <div class="counter" id="count">SHARED CORONAL LOOPS COMPILATION: [0]</div>
+      <div class="feed" id="feed" aria-live="polite"><div class="empty">// awaiting first transmission. whatever you write is welcome here.</div></div>
+    </section>
+  </main>
+</div>
+
+<script>
+(()=>{
+"use strict";
+const $=s=>document.querySelector(s),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t;
+const rs=a=>`${a[0]|0},${a[1]|0},${a[2]|0}`;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sstep=x=>{x=clamp(x,0,1);return x*x*(3-2*x)};
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ================= anatomy ================= */
+const BW=1000,BH=640;
+const REG=[
+ {id:"pfc",n:"Prefrontal cortex",x:160,y:235,r:95,role:"Planning, judgment and calming the alarm system."},
+ {id:"acc",n:"Anterior cingulate",x:320,y:190,r:50,role:"Conflict monitor. Registers emotional and social pain."},
+ {id:"striatum",n:"Nucleus accumbens",x:350,y:305,r:44,role:"The wanting-and-reward hub, fed by dopamine."},
+ {id:"insula",n:"Insula",x:265,y:335,r:40,role:"Maps body feelings: racing heart, warmth, gut tightness."},
+ {id:"hypothalamus",n:"Hypothalamus",x:455,y:325,r:28,role:"Releases oxytocin and runs the stress-hormone (HPA) axis."},
+ {id:"amygdala",n:"Amygdala",x:415,y:385,r:30,role:"Threat and importance detector. Tags what matters emotionally."},
+ {id:"hippocampus",n:"Hippocampus",x:535,y:385,r:40,role:"Builds memories and learns from context."},
+ {id:"vta",n:"Ventral tegmental area",x:515,y:445,r:24,role:"Dopamine factory that powers motivation."},
+ {id:"raphe",n:"Brainstem raphe",x:560,y:505,r:34,role:"Serotonin source that steadies mood and sleep."},
+ {id:"dmn",n:"Default mode network",x:640,y:170,r:85,role:"Self-talk, mind-wandering and replaying the past."},
+ {id:"occipital",n:"Visual cortex",x:835,y:285,r:70,role:"Processes sights. Lights up for beauty and wonder."},
+ {id:"cerebellum",n:"Cerebellum",x:825,y:465,r:58,role:"Timing and coordination. Also tunes emotional responses."}
+];
+const RI={};REG.forEach((g,i)=>RI[g.id]=i);
+const CH={dopa:["Dopamine","255,179,71","wanting & motivation"],oxy:["Oxytocin","255,122,192","bonding & trust"],sero:["Serotonin","138,214,255","mood steadiness"],
+ cort:["Cortisol","255,59,92","stress hormone"],adre:["Adrenaline","255,122,48","alert & arousal"],endo:["Endorphins","0,255,157","natural comfort"],gaba:["GABA","185,167,255","the brain's brake"]};
+
+/* ================= emotions ================= */
+const E=[
+{id:"romantic",label:"Romantic love",val:.9,col:"255,90,160",focus:"striatum",
+ st:"in love|fell for|fall for|falling for|falling in love|fell in love|crush|butterflies|romanc|romantic|soulmate|my boyfriend|my girlfriend|my partner|my husband|my wife|my fianc|kiss|adore|infatuat|sweetheart|cuddl|date night|first date|love of my life",em:"❤|💕|😍|🥰|💘|💖|😘|💞|💓",
+ reg:{striatum:.95,vta:.9,hypothalamus:.6,insula:.5,amygdala:.25,pfc:.3},ch:{dopa:.95,oxy:.75,sero:.25,endo:.6,adre:.55,cort:.5},at:[.15,.55,.4,.85],
+ head:"Your reward system is lit up and your brain is bonding.",
+ steps:[["Reward ignition","Thinking of someone you love fires dopamine neurons in the VTA, which flood the nucleus accumbens, the same wanting-and-reward hub that responds to music and chocolate, only louder."],["Bonding chemistry","The hypothalamus releases oxytocin, which turns closeness into trust and a feeling of safety around that person."],["Quieter inner critic","Judgment areas in the prefrontal cortex ease off while serotonin dips a little, a pattern researchers link to happy tunnel vision and not being able to stop thinking about them."]],
+ feel:"Butterflies, a lifted mood, racing happy thoughts, extra energy, less appetite or sleep.",
+ tips:[["Savor it on purpose","Pausing to notice a good moment helps memory circuits store it."],["Keep sleep and friends","They keep the high steady instead of restless."]]},
+{id:"affection",label:"Warm affection",val:.8,col:"255,150,190",focus:"hypothalamus",
+ st:"love|loving|cherish|hug|affection|tender|beloved|dear to me|my dog|my cat|puppy|kitten",em:"🤗|🐶|🐱",
+ reg:{hypothalamus:.9,striatum:.55,insula:.5,pfc:.4,acc:.3},ch:{oxy:.9,dopa:.6,sero:.6,endo:.6,cort:.15,gaba:.6},at:[.05,.3,.7,.95],
+ head:"Warm bonding signals are washing through your brain.",
+ steps:[["Oxytocin release","Affection triggers the hypothalamus to release oxytocin, which lowers stress hormones and tells your body it is safe."],["Gentle reward","A softer dopamine and serotonin lift in the reward circuit makes company feel good without the rush of infatuation."],["Social mapping","The insula and prefrontal cortex tag this person or pet as someone who matters, strengthening the memory of them."]],
+ feel:"Warmth in the chest, a softer face, calm happiness, wanting to be close.",
+ tips:[["Say it out loud","Telling someone you care strengthens the bond for both brains."],["Touch or time together","Hugs and shared time are among the best natural oxytocin boosters."]]},
+{id:"joy",label:"Joy",val:.85,col:"255,214,90",focus:"striatum",
+ st:"happy|happier|happiness|joy|cheer|delight|glad|wonderful|awesome|great\\b|good\\b|nice\\b|good day|good mood|good news|enjoy|fun\\b|smil|yay|best day|pleasant",em:"😊|😄|😁|🙂|😃|☺|🎉|😀",
+ reg:{striatum:.8,vta:.6,pfc:.55,insula:.35},ch:{dopa:.8,sero:.75,endo:.65,cort:.15},at:[.05,.5,.6,.6],
+ head:"Reward circuits are humming and stress is dropping.",
+ steps:[["Dopamine lift","Good moments make VTA neurons release dopamine into the nucleus accumbens, tagging this as worth repeating."],["Mood chemistry","Serotonin and endorphins rise, easing stress and lifting your baseline mood."],["Wider thinking","Positive states widen attention and creativity, so ideas connect more easily."]],
+ feel:"Lightness, smiling, energy, easy laughter, generosity.",
+ tips:[["Pause for ten seconds","Savoring a moment helps the brain remember it."],["Share the news","Being celebrated amplifies the good feeling."]]},
+{id:"gratitude",label:"Gratitude",val:.8,col:"255,190,120",focus:"pfc",
+ st:"grateful|thankful|thank|appreciat|blessed|gratitude|lucky to",em:"🙏",
+ reg:{pfc:.8,striatum:.5,hypothalamus:.5,acc:.4},ch:{dopa:.65,sero:.75,oxy:.6,cort:.2},at:[.05,.35,.75,.7],
+ head:"Your brain is rewarding itself for noticing kindness.",
+ steps:[["Noticing","The medial prefrontal cortex links the good thing to the person or event behind it."],["Reward and calm","The reward system gives a small dopamine boost while serotonin and oxytocin settle your body."],["Habit loop","Repeated gratitude trains attention toward the good, which can ease stress over weeks."]],
+ feel:"Warm, humble, settled, softly happy.",
+ tips:[["Write one specific thing","Specific beats general: name the person and the moment."],["Tell them","Expressed thanks lifts both of you."]]},
+{id:"pride",label:"Pride",val:.8,col:"255,200,60",focus:"striatum",
+ st:"proud|pride|accomplish|achiev|nailed|succeed|success|promot|graduat|passed|aced|won\\b|victory|milestone|crushed it|finished",em:"🏆|💪",
+ reg:{striatum:.8,vta:.6,pfc:.6},ch:{dopa:.85,sero:.65,cort:.2},at:[.15,.6,.4,.5],
+ head:"A hit of earned reward is wiring in your effort.",
+ steps:[["Reward for effort","Achievement drives dopamine in the nucleus accumbens, reinforcing the work that got you here."],["Self-credit","The prefrontal cortex ties success to you, building confidence for the next challenge."],["Lower threat","Cortisol drops when you feel capable, leaving room for ambition."]],
+ feel:"Chest lifting, upright posture, wanting to share.",
+ tips:[["Write down how you did it","Remembering the process makes the confidence reusable."],["Rest, then aim again","Consolidation during rest locks in the learning."]]},
+{id:"excitement",label:"Excitement",val:.7,col:"255,140,60",focus:"vta",
+ st:"excit|can't wait|cant wait|pumped|hyped|eager|thrilled|looking forward|stoked|buzzing",em:"🤩|🔥|⚡",
+ reg:{vta:.85,striatum:.8,amygdala:.45,insula:.4},ch:{dopa:.9,adre:.75,cort:.5},at:[.3,.7,.1,.5],
+ head:"Dopamine and adrenaline are priming you to act.",
+ steps:[["Anticipation","Dopamine from the VTA spikes before the reward, which is why waiting can feel better than getting."],["Body on alert","The amygdala and adrenaline raise heart rate and focus, the same arousal as nerves but tagged as positive."],["Felt in the body","The insula reports the buzz, so you feel it in your chest and stomach."]],
+ feel:"Racing heart, butterflies, restless energy, big smile.",
+ tips:[["Channel it into movement","A walk burns off extra arousal without losing the joy."],["Sleep still counts","Excitement can steal rest, so wind down on purpose."]]},
+{id:"awe",label:"Awe & wonder",val:.8,col:"130,200,255",focus:"occipital",
+ st:"awe\\b|awestruck|wonder\\b|breathtaking|beautiful|gorgeous|majestic|stunning|sunset|sunrise|stars|starry|mountain|ocean|goosebumps|chills|magical|marvel",em:"🌅|🌄|✨|🌌|🌈",
+ reg:{occipital:.85,dmn:.55,insula:.5,striatum:.5,pfc:.45},ch:{dopa:.7,endo:.6,oxy:.5,cort:.1},at:[.05,.7,.7,.45],
+ head:"Your sense of self shrinks while wonder expands.",
+ steps:[["Visual flood","The visual cortex processes vastness and beauty, then passes it to emotion areas."],["Quieter self-talk","Activity in the default mode network, home of self-focused thoughts, dips, which is why awe feels humbling."],["Reward and chills","Dopamine and endorphins add goosebumps and a feeling of meaning."]],
+ feel:"Goosebumps, slowed breathing, feeling small in a good way.",
+ tips:[["Seek it weekly","Nature, music and big ideas are reliable awe sources."],["Describe it to someone","Sharing awe tends to deepen connection."]]},
+{id:"calm",label:"Calm",val:.7,col:"130,230,200",focus:"raphe",
+ st:"calm|peace|relax|serene|tranquil|quiet|still\\b|safe\\b|breathe|breathing|meditat|slow morning|unwind|cozy|mellow|at ease|restful|stretch|yoga|nap\\b|chill\\b|contented",em:"😌|🧘|☕|🌿",
+ reg:{pfc:.6,raphe:.7,dmn:.35,hypothalamus:.3,insula:.35},ch:{gaba:.85,sero:.8,cort:.1,oxy:.5,adre:.1,endo:.45},at:[.02,.2,.98,.5],
+ head:"The brake pedal is on and your body is recovering.",
+ steps:[["Alarm off","The amygdala quiets and the prefrontal cortex takes the lead, so threat signals fade."],["GABA and serotonin","Calming chemistry, with GABA acting as the brake, slows heart rate and loosens muscles."],["Repair mode","Cortisol falls, and the brain consolidates memories and repairs itself."]],
+ feel:"Slower breath, relaxed shoulders, clear thinking, quiet.",
+ tips:[["Protect it","Block recovery time like a meeting."],["Add a long exhale","Breathing out longer than in nudges the body toward its calm mode."]]},
+{id:"hope",label:"Hope & motivation",val:.7,col:"120,255,160",focus:"pfc",
+ st:"hope|optimis|motivat|determin|inspir|ambitio|driven|goal|progress|believe in|ready to|fresh start|new chapter|better days|keep going|manifest",em:"",
+ reg:{pfc:.9,striatum:.7,acc:.5,vta:.6},ch:{dopa:.8,sero:.6,cort:.3,adre:.45},at:[.25,.85,.35,.45],
+ head:"Planning circuits and reward circuits are working together.",
+ steps:[["Imagining ahead","The prefrontal cortex builds a picture of a better future and checks it against your plan."],["Reward of anticipation","Dopamine from the VTA energizes the pursuit, which turns hope into action."],["Conflict check","The anterior cingulate monitors progress, nudging you when something needs adjusting."]],
+ feel:"Energy, focus, a sense of direction, lighter worries.",
+ tips:[["Pick the next 25 minutes","A small first step converts motivation into momentum."],["Tell someone your goal","Commitment is stickier when shared."]]},
+{id:"curiosity",label:"Curiosity & learning",val:.7,col:"0,240,255",focus:"hippocampus",
+ st:"curio|learn|study|studying|discover|explor|fascinat|research|experiment|new skill|figuring out|tutorial|course|insight|interesting|intrigu|brainstorm|obsessed with",em:"📚|🔬|💡",
+ reg:{hippocampus:.9,pfc:.7,striatum:.5,vta:.5,dmn:.3},ch:{dopa:.75,sero:.5,cort:.25},at:[.15,.95,.4,.4],
+ head:"Your hippocampus is hungry for new connections.",
+ steps:[["Novelty signal","New information makes the VTA release dopamine, which also boosts memory formation."],["Hippocampus at work","The hippocampus binds facts into context and builds fresh synapses."],["Prefrontal sorting","The prefrontal cortex organizes what you learn so it fits with what you already know."]],
+ feel:"Absorbed, time flying, wanting to know more.",
+ tips:[["Learn, then rest","Sleep and downtime help new connections stick."],["Teach it","Explaining forces the brain to rebuild the idea."]]},
+{id:"amusement",label:"Amusement",val:.8,col:"255,230,80",focus:"striatum",
+ st:"laugh|funny|hilarious|lol\\b|lmao|haha|hehe|giggl|joke|humor|silly|cracked up|rofl",em:"😂|🤣|😆|😹",
+ reg:{striatum:.7,pfc:.5,cerebellum:.5,insula:.4,hypothalamus:.4},ch:{endo:.9,dopa:.7,cort:.05,oxy:.5},at:[.02,.4,.6,.7],
+ head:"Laughter is a full-brain reward with a natural painkiller.",
+ steps:[["Surprise and resolve","Frontal areas catch the twist, then the reward system pays out dopamine."],["Endorphin release","Laughing releases endorphins, which ease tension and raise pain tolerance."],["Social glue","Shared laughter signals safety, strengthening bonds."]],
+ feel:"Loosened chest, tears of laughter, lighter mood afterwards.",
+ tips:[["Laugh with someone","Shared laughter is stronger than solo."],["Keep a silly folder","Reviewing a funny memory can lift mood."]]},
+{id:"nostalgia",label:"Nostalgia",val:.3,col:"230,170,200",focus:"hippocampus",
+ st:"nostalg|remember when|childhood|old days|good old|throwback|reminisc|memories|those days|growing up|back then|miss those|old photos",em:"📷|🕰",
+ reg:{hippocampus:.85,dmn:.75,striatum:.45,insula:.4,pfc:.4},ch:{dopa:.55,oxy:.6,sero:.5,cort:.35},at:[.2,.3,.5,.6],
+ head:"Memory and reward circuits are replaying something precious.",
+ steps:[["Memory replay","The hippocampus retrieves a scene while the default mode network wanders into the past."],["Warm and bittersweet","Reward and bonding chemistry make the memory feel warm, while the missing part adds the ache."],["Meaning boost","Nostalgia tends to increase feelings of belonging and purpose."]],
+ feel:"Warm smile with a lump in the throat, longing, gratitude.",
+ tips:[["Reach out to someone in the memory","Reconnecting turns longing into closeness."],["Make a new memory","Plasticity grows from novelty, not only from the past."]]},
+{id:"anxiety",label:"Anxiety",val:-.7,col:"255,160,40",focus:"amygdala",nn:1,
+ st:"anxi|worr|scared|afraid|nervous|panic|dread|terrif|what if|overthink|spiral|fear|frighten|uneasy|restless|on edge|jittery|tense|can't stop thinking|cant stop thinking",em:"😰|😨|😱|😟|😬",
+ reg:{amygdala:.95,hypothalamus:.7,insula:.7,acc:.5,hippocampus:.4,pfc:.35},ch:{adre:.9,cort:.85,gaba:.15,sero:.3,dopa:.25},at:[.85,.1,.05,.2],
+ head:"Your alarm system is ahead of the facts.",
+ steps:[["Alarm trigger","The amygdala flags a possible threat before the thinking brain has checked it, firing the stress response."],["Stress chemistry","The hypothalamus signals adrenaline and cortisol, speeding heart and breathing, while the GABA brake weakens."],["Rehearsal loop","The prefrontal cortex is partly offline, so the mind replays what-ifs instead of settling."]],
+ feel:"Racing heart, tight chest or stomach, scattered thoughts.",
+ tips:[["Breathe out longer than in","4 seconds in, 6 to 8 out for a minute to engage the calming system."],["Name five things you can see","Grounding in the present gives the prefrontal cortex something to do."]]},
+{id:"anger",label:"Anger",val:-.7,col:"255,50,70",focus:"amygdala",
+ st:"angr|anger|furious|mad\\b|rage|raging|pissed|annoy|irritat|fed up|so done|yell|shout|scream|argu|fought|fight|snapped|livid|hate\\b|hated|can't stand|infuriat|frustrat",em:"😡|🤬|😤|👿",
+ reg:{amygdala:.9,hypothalamus:.75,acc:.6,insula:.55,pfc:.3},ch:{adre:.85,cort:.7,dopa:.5,sero:.25,gaba:.2},at:[.9,.1,.05,.1],
+ head:"The threat response is turned outward.",
+ steps:[["Fast alarm","The amygdala detects unfairness or threat and triggers the stress response within a fraction of a second."],["Body surge","Adrenaline and cortisol raise heart rate and muscle tension while the hypothalamus keeps the response going."],["Brakes weaken","Prefrontal control dips, so impulses win until the surge passes, usually within about 20 minutes."]],
+ feel:"Heat, clenched jaw, fast heartbeat, urge to react.",
+ tips:[["Wait before replying","About 20 minutes lets calm reasoning return."],["Move first, talk later","A brisk walk burns off adrenaline."]]},
+{id:"sadness",label:"Sadness",val:-.7,col:"100,140,255",focus:"acc",
+ st:"sad\\b|sadness|cry|cried|crying|tears|grief|griev|mourn|loss\\b|heartache|gloomy|depress|feeling down|feel down|down today|so down|feeling low|feel low|hopeless|miserable|awful|terrible|horrible|worst|bad day|rough day|miss(?:ing)? (?:her|him|them|you)|unhappy|hurts?\\b|devastat|empty inside",em:"😢|😭|😞|😔|🥺|☹",
+ reg:{acc:.85,insula:.6,amygdala:.5,hippocampus:.4,pfc:.35,striatum:.15},ch:{dopa:.2,sero:.25,cort:.65,oxy:.55,endo:.3},at:[.6,.1,.2,.3],
+ head:"Your brain is slowing down to process a loss.",
+ steps:[["Pain of loss","The anterior cingulate and insula register loss using circuits that overlap with physical pain."],["Lower drive","Dopamine and serotonin dip, reducing motivation and making everything feel heavier."],["Processing","The hippocampus and prefrontal cortex replay and make sense of what happened, which needs time and company."]],
+ feel:"Heaviness, tears, low energy, wanting to withdraw.",
+ tips:[["Let it have words","Writing or telling someone helps the brain organize the feeling."],["Small gentle routines","Light, food and a short walk support a low-energy brain."]]},
+{id:"lonely",label:"Loneliness",val:-.65,col:"130,150,230",focus:"acc",nn:1,
+ st:"alone\\b|lonel|isolat|no one|nobody|invisible|left out|excluded|ignored|ghosted|abandon|unseen|friendless|no friends",em:"🥀",
+ reg:{acc:.9,insula:.7,amygdala:.45,pfc:.35,striatum:.2},ch:{oxy:.15,cort:.7,sero:.3,dopa:.3},at:[.6,.1,.1,.05],
+ head:"A belonging alarm is going off.",
+ steps:[["Social pain","The anterior cingulate and insula treat disconnection like a threat, using pain-related circuitry."],["Low bonding chemistry","Oxytocin has little to work with, while cortisol stays elevated."],["Vigilance","The amygdala becomes more watchful for rejection, which can make reaching out feel risky."]],
+ feel:"Ache, tiredness, feeling invisible, wanting contact but hesitating.",
+ tips:[["Send one low-pressure message","A simple thinking of you counts."],["Be near people","A cafe or library gives presence without pressure."]]},
+{id:"heartbreak",label:"Heartbreak & one-sided love",val:-.8,col:"220,80,150",focus:"striatum",nn:1,
+ st:"one[- ]?sided|unrequited|doesn't love me|doesnt love me|don't love me back|dont love me back|lov(?:e|ed) me back|loves someone else|rejected|rejection|friend ?zon|doesn't like me back|doesnt like me back|break ?up|broke up|broken heart|heartbr|moved on without|never noticed me|doesn't notice me|doesnt notice me|dumped|ghosted me|left me|can't have (?:her|him)|cant have (?:her|him)|love (?:her|him) but|love someone who|unavailable|ex\\b",em:"💔",
+ reg:{striatum:.85,vta:.7,acc:.9,insula:.85,amygdala:.55,pfc:.5,hypothalamus:.45},ch:{dopa:.65,sero:.25,cort:.8,oxy:.5,endo:.25,adre:.6},at:[.75,.1,.1,.3],
+ head:"The wanting circuit is still firing, but nothing is coming back.",
+ steps:[["Wanting without receiving","Your reward system (VTA to nucleus accumbens) keeps firing for this person, but the payoff never arrives. Brain scans of people rejected in love show the same wanting circuitry seen in craving."],["Social pain","The anterior cingulate and insula process the sting of rejection with circuits that overlap with physical pain, so the ache in your chest is real, not imagined."],["Replay loop","The prefrontal cortex tries to solve it by replaying scenes while cortisol stays high and serotonin dips, which feeds the loop of overthinking."]],
+ feel:"A heavy chest, replaying conversations, hope that flickers up and down, trouble concentrating.",
+ tips:[["Give the feeling words, not just replays","Writing or talking it through engages prefrontal regions that quiet the alarm."],["Reduce the cues for a while","Fewer triggers, like checking their profile, give the wanting circuit time to cool, like a craving that fades if not fed."],["Lean on people who love you back","Safe closeness restores oxytocin and eases the sting."]]},
+{id:"shame",label:"Shame & embarrassment",val:-.7,col:"255,100,140",focus:"acc",
+ st:"asham|shame|embarrass|humiliat|cring|stupid|worthless|failure|not good enough|useless|i suck|idiot|pathetic|awkward|mortif|inadequate|so dumb",em:"😳|🙈",
+ reg:{acc:.8,insula:.8,pfc:.6,amygdala:.65,dmn:.6},ch:{cort:.8,adre:.6,sero:.3,oxy:.2},at:[.7,.1,.1,.1],
+ head:"Your social-threat circuits are asking whether you are still accepted.",
+ steps:[["Self-focused alarm","The default mode network and medial prefrontal cortex turn attention inward on how you look to others."],["Social pain","The anterior cingulate and insula register the sting, and the amygdala adds the urge to hide."],["Stress chemistry","Cortisol and adrenaline rise, which is why shame feels hot and physical."]],
+ feel:"Flushed face, wanting to disappear, harsh inner voice.",
+ tips:[["Tell one safe person","Shame shrinks when said aloud to someone kind."],["Speak to yourself like a friend","Self-compassion calms the threat response."]]},
+{id:"guilt",label:"Guilt & regret",val:-.5,col:"230,130,110",focus:"acc",
+ st:"guilt|regret|sorry|apolog|my fault|shouldn't have|shouldnt have|let (?:him|her|them|you) down|feel bad|remorse|i messed up",em:"",
+ reg:{acc:.8,pfc:.7,insula:.6,dmn:.55,hippocampus:.45},ch:{cort:.55,sero:.35,oxy:.45},at:[.5,.1,.2,.5],
+ head:"Your conscience is nudging you toward repair.",
+ steps:[["Conflict detection","The anterior cingulate notices a gap between what you did and what you value."],["Perspective-taking","Prefrontal and self-referential regions imagine how the other person feels."],["Repair motive","Moderate cortisol and oxytocin push toward apology, which is the healthy purpose of guilt."]],
+ feel:"Heavy stomach, replaying what happened, urge to apologize.",
+ tips:[["Make the repair small and real","A sincere apology beats lingering rumination."],["Separate act from self","Guilt says I did something bad. Shame says I am bad."]]},
+{id:"jealousy",label:"Jealousy & envy",val:-.6,col:"160,220,80",focus:"acc",
+ st:"jealous|envy|envious|envied|resent|compar|why not me|everyone else (?:is|has)|ahead of me|better than me|wish i (?:had|were|was)",em:"",
+ reg:{acc:.75,insula:.7,amygdala:.6,striatum:.5,pfc:.5},ch:{cort:.6,adre:.5,dopa:.45,sero:.3},at:[.6,.15,.1,.25],
+ head:"Your brain is measuring itself against someone else.",
+ steps:[["Social comparison","The anterior cingulate and insula register the gap as a social threat."],["Wanting and loss","The striatum signals that something rewarding belongs to someone else, while the amygdala adds alarm."],["Rumination","Prefrontal control tries to fix the gap by replaying comparisons."]],
+ feel:"Knot in the stomach, restlessness, harsh self-comparison.",
+ tips:[["Turn it into a signal","Ask what this shows you want."],["Limit the feed","Fewer comparisons give the status monitor a rest."]]},
+{id:"overwhelm",label:"Overwhelm & stress",val:-.8,col:"255,0,127",focus:"hypothalamus",nn:1,
+ st:"stress|overwhelm|pressur|deadline|overwork|workload|exam\\b|exams\\b|boss|overtime|behind on|too much|can't cope|cant cope|swamped|burden|drowning|crunch|micromanag|quota|layoff|toxic|assignment|submission|thesis|due tomorrow|no time",em:"😫|🤯|😩",
+ reg:{hypothalamus:.85,amygdala:.8,acc:.6,hippocampus:.5,pfc:.35},ch:{cort:.95,adre:.75,gaba:.2,sero:.3,dopa:.3},at:[.95,.1,.05,.2],
+ head:"The stress axis is running at full throttle.",
+ steps:[["Hypothalamus alert","Pressure triggers the HPA axis, releasing cortisol and adrenaline."],["Thinking narrows","Chronic stress quiets the prefrontal cortex while the amygdala gets louder, so everything feels urgent."],["Memory strain","High cortisol hits the hippocampus, making focus and recall harder."]],
+ feel:"Tight shoulders, scattered focus, irritability, poor sleep.",
+ tips:[["Shrink the next task to 10 minutes","A small win loosens the sense of being buried."],["Protect tonight's sleep","Sleep resets stress systems."]]},
+{id:"exhaust",label:"Exhaustion & burnout",val:-.6,col:"150,130,190",focus:"raphe",nn:1,
+ st:"tired|exhaust|drain|burn(?:ed|t) out|burnout|fatigue|numb|no energy|can't get up|cant get up|insomnia|sleepless|worn out|wiped|running on empty|zombie|sleepy|lethargic|foggy|brain fog|fog\\b|apath|unmotivat|empty\\b",em:"😴|🥱|😪",
+ reg:{raphe:.5,hypothalamus:.6,dmn:.55,acc:.55,pfc:.25},ch:{dopa:.15,sero:.25,cort:.75,gaba:.3,endo:.15},at:[.6,.05,.02,.2],
+ head:"The brain is conserving fuel.",
+ steps:[["Energy cut","Long stress leaves cortisol high and dopamine low, so motivation drops."],["Fog","The prefrontal cortex dims to save energy, leaving focus and decisions harder."],["Reset needs","Sleep and gentle movement are the quickest levers to restore chemistry."]],
+ feel:"Heavy limbs, fog, numbness, no spark.",
+ tips:[["Get outdoor light and a short walk","Daylight supports energy and sleep timing."],["Lower today's bar","Rest is part of recovery, not a reward for it."]]},
+{id:"boredom",label:"Boredom",val:-.2,col:"150,170,180",focus:"dmn",
+ st:"bored|boring|nothing to do|monoton|same routine|dull|uninterest|meh\\b|nothing exciting|stagnant",em:"😐|🙄",
+ reg:{dmn:.85,acc:.4,striatum:.25,pfc:.3},ch:{dopa:.25,sero:.4},at:[.2,0,.3,.1],
+ head:"The default mode network is wandering for stimulation.",
+ steps:[["Idle mode","Without engaging input, the default mode network takes over and drifts."],["Low reward","Dopamine drops because nothing predicts a payoff."],["Seeking","The brain nudges you to find something novel, which is also what drives creativity."]],
+ feel:"Restless drifting, clock-watching, craving novelty.",
+ tips:[["Try something slightly new","Novelty restarts the dopamine system."],["Let it wander","Boredom is where ideas often form."]]},
+{id:"confusion",label:"Confusion & uncertainty",val:-.3,col:"190,170,255",focus:"acc",nn:1,
+ st:"confus|unsure|uncertain|don't know what|dont know what|can't decide|cant decide|lost\\b|torn between|stuck\\b|mixed feelings|no idea|unclear|puzzled|indecis|what should i do|crossroads",em:"😕|🤔|😵|❓",
+ reg:{acc:.85,pfc:.75,insula:.4,hippocampus:.35},ch:{dopa:.4,cort:.45,adre:.4},at:[.45,.3,.2,.2],
+ head:"Your conflict monitor is working overtime.",
+ steps:[["Mismatch detected","The anterior cingulate flags that the facts do not fit together."],["Working memory load","The prefrontal cortex juggles options, which burns energy fast."],["Waiting for clarity","The hippocampus searches past experiences for a pattern."]],
+ feel:"Foggy, stuck, going in circles.",
+ tips:[["Write both sides down","Offloading frees working memory."],["Sleep on it","Rest helps the brain sort options."]]},
+{id:"disgust",label:"Disgust",val:-.5,col:"170,190,60",focus:"insula",
+ st:"disgust|gross|revolt|nauseat|repuls|sickening|yuck|ew\\b|vile|creeped|creepy",em:"🤢|🤮",
+ reg:{insula:.95,amygdala:.6,acc:.4,pfc:.35},ch:{adre:.5,cort:.5,sero:.3},at:[.5,.1,.1,.1],
+ head:"A protective reaction is steering you away.",
+ steps:[["Insula alarm","The insula reacts to something unpleasant, physical or moral."],["Avoidance","The amygdala tags it to avoid, and the body mimics it with nausea."],["Judgment","Prefrontal areas add the story of why it is wrong."]],
+ feel:"Nausea, recoil, wanting distance.",
+ tips:[["Create distance","Leaving the cue lets the reaction settle."],["Name what it protects","Often disgust guards a value."]]},
+{id:"betrayal",label:"Hurt & betrayal",val:-.8,col:"255,70,110",focus:"acc",nn:1,
+ st:"mocked|mocking|betray|humiliated by|lied to me|made fun of|bully|bullied|insulted|behind my back|backstab|two-faced|two faced|used me|cheated|laughed at me|belittl|ridicul|put me down|disrespect",em:"",
+ reg:{acc:.85,insula:.8,amygdala:.8,pfc:.5,hippocampus:.5},ch:{cort:.85,adre:.7,sero:.25,oxy:.2},at:[.85,.1,.1,.1],
+ head:"Trust circuits have registered a breach.",
+ steps:[["Social pain","The anterior cingulate and insula process betrayal through circuits that overlap with physical pain."],["Threat scan","The amygdala puts you on guard, which feels like suspicion or hypervigilance."],["Chemistry","Cortisol and adrenaline rise while oxytocin and serotonin drop, leaving you shaky and alone."]],
+ feel:"Sting, distrust, replaying scenes.",
+ tips:[["Talk to someone who sees your worth","Support dampens the stress response."],["Decide later","A calm reply after the surge lands better than one in the heat."]]},
+{id:"belonging",label:"Belonging & connection",val:.8,col:"90,220,255",focus:"hypothalamus",
+ st:"friends|together|support|team\\b|communit|understood|belong|hang out|hung out|gathering|reunion|family|colleague|mentor|party|hanging out|talked to|heard me|listened",em:"🫂|🤝",
+ reg:{hypothalamus:.65,striatum:.6,pfc:.5,insula:.4,acc:.25},ch:{oxy:.8,sero:.65,dopa:.6,cort:.15},at:[.1,.3,.6,.95],
+ head:"Social safety signals are calming your brain.",
+ steps:[["Safe company","Familiar faces tell the amygdala that no threat is present."],["Bonding chemistry","Oxytocin and dopamine reward closeness, strengthening trust."],["Resilience","Support buffers stress, which keeps the brain flexible."]],
+ feel:"Ease, belonging, laughter, feeling understood.",
+ tips:[["Make it regular","A weekly call or walk keeps the buffer strong."],["Notice who recharges you","Spend more time there."]]},
+{id:"relief",label:"Relief",val:.6,col:"140,255,210",focus:"hypothalamus",
+ st:"relief|relieved|phew|weight off|weight lifted|survived|it's over|its over|finally done|finally over",em:"😮‍💨|😅",
+ reg:{hypothalamus:.6,pfc:.6,raphe:.5,amygdala:.15},ch:{cort:.15,gaba:.7,endo:.6,sero:.6},at:[.1,.2,.8,.4],
+ head:"The stress response is switching off.",
+ steps:[["Threat resolved","The amygdala stands down once the prefrontal cortex confirms safety."],["Hormone drop","Cortisol falls, and endorphins and GABA wash in."],["Reset","The body slows heart rate, and sleep often deepens."]],
+ feel:"Loosened shoulders, deep exhale, sudden tiredness.",
+ tips:[["Let yourself rest","A crash after stress is normal."],["Note what helped","That is data for next time."]]}
+];
+const EB={};
+E.forEach(e=>{
+  EB[e.id]=e;
+  const src=(e.st?`\\b(?:${e.st})`:"")+(e.st&&e.em?"|":"")+(e.em?`(?:${e.em})`:"");
+  e.re=new RegExp(src,"gi");e.re1=new RegExp(src,"i");
+});
+
+/* ================= text analysis ================= */
+const NEG=new Set(["not","no","never","without","cant","can't","dont","don't","isnt","isn't","wasnt","wasn't","barely","hardly","stopped","nothing","didnt","didn't","wont","won't","cannot","doesnt","doesn't","aint","ain't","hasnt","hasn't","neither","nor"]);
+const INT=new Set(["very","so","really","extremely","constantly","always","completely","totally","too","incredibly","absolutely","endless","deeply","madly","truly","insanely"]);
+const CRISIS=/(suicid|kill myself|end it all|want to die|don'?t want to (live|be here)|hurt myself|self[- ]harm)/i;
+function analyze(text){
+  const t=text.toLowerCase().replace(/[’‘`]/g,"'"),L=t.length||1,sc={},hits=[],seen=new Set();
+  const words=(t.match(/[a-z']+/g)||[]).length;
+  const add=(id,v)=>{sc[id]=(sc[id]||0)+v};
+  for(const e of E){
+    e.re.lastIndex=0;let m;
+    while((m=e.re.exec(t))){
+      if(!m[0]){e.re.lastIndex++;continue}
+      const i=m.index,before=t.slice(Math.max(0,i-30),i).split(/[^a-z']+/).filter(Boolean).slice(-3);
+      const neg=!e.nn&&before.some(w=>NEG.has(w)),int=before.some(w=>INT.has(w));
+      let v=(int?1.6:1)*(.85+.3*i/L)*(t.slice(i+m[0].length,i+m[0].length+14).includes("!")?1.2:1);
+      if(neg){add(e.val>0?"sadness":"calm",.4*v)}else add(e.id,v);
+      const key=m[0]+e.id;if(!seen.has(key)&&seen.size<9){seen.add(key);hits.push({w:m[0].trim(),e,neg})}
+    }
+  }
+  // context: a one-sided or lost love turns love-words into longing, not joy
+  if(sc.heartbreak>0)for(const k of["romantic","affection","joy"])if(sc[k])sc[k]*=.3;
+  const arr=Object.entries(sc).filter(([,v])=>v>=.5).sort((a,b)=>b[1]-a[1]);
+  const top=arr.length?arr[0][1]:0;
+  const items=arr.filter(([,v])=>v>=.3*top).slice(0,3).map(([id,w])=>({e:EB[id],w}));
+  return{words,crisis:CRISIS.test(text),items,hits,top,strength:clamp(top/2.2,.45,1)};
+}
+const wordEmo=w=>{for(const e of E)if(e.re1.test(w))return e;return null};
+
+/* ================= brain geometry ================= */
+const cv=$("#cv"),ctx=cv.getContext("2d");
+let W=0,H=0,DPR=1,K=1;
+function resize(){const r=cv.getBoundingClientRect();DPR=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;cv.width=W*DPR;cv.height=H*DPR;K=Math.min(W/BW,H/BH)*.94}
+addEventListener("resize",resize);
+function spline(pts,closed){const p=new Path2D(),n=pts.length,g=i=>pts[(i+n)%n];
+  p.moveTo(pts[0][0],pts[0][1]);
+  for(let i=0;i<n-(closed?0:1);i++){const p0=g(i-1),p1=g(i),p2=g(i+1),p3=g(i+2);
+    p.bezierCurveTo(p1[0]+(p2[0]-p0[0])/6,p1[1]+(p2[1]-p0[1])/6,p2[0]-(p3[0]-p1[0])/6,p2[1]-(p3[1]-p1[1])/6,p2[0],p2[1])}
+  if(closed)p.closePath();return p}
+const cereb=spline([[60,300],[78,225],[130,150],[215,95],[330,62],[460,48],[590,52],[710,78],[810,125],[880,195],[915,275],[905,350],[860,395],[790,410],[720,402],[690,425],[620,445],[545,450],[470,440],[400,425],[330,410],[260,395],[190,378],[120,355],[78,332]],true);
+const cbl=spline([[740,420],[800,408],[870,415],[915,445],[905,490],[860,515],[800,520],[750,500],[728,460]],true);
+const stem=spline([[515,430],[585,430],[605,500],[595,590],[545,598],[528,520]],true);
+const fissure=spline([[250,350],[340,335],[430,350],[520,335],[600,300]],false);
+const sulci=(()=>{const p=new Path2D(),r=rng(7);
+  for(let i=0;i<18;i++){let x=80+r()*820,y=70+r()*330,a=r()*6.283;p.moveTo(x,y);
+    for(let s=0;s<8;s++){a+=(r()-.5)*1.2;x+=Math.cos(a)*26;y+=Math.sin(a)*26;p.lineTo(x,y)}}
+  return p})();
+const oc=document.createElement("canvas").getContext("2d");oc.canvas.width=BW;oc.canvas.height=BH;
+const inside=(x,y)=>oc.isPointInPath(cereb,x,y)||oc.isPointInPath(stem,x,y)||oc.isPointInPath(cbl,x,y);
+
+/* network */
+const nodes=[],edges=[],nbr=[],pls=[],sparks=[],ripples=[],NEU={},NT=[];
+const mk=(x,y)=>({hx:x,hy:y,x,y,ph:Math.random()*6.283,act:0,reg:-1,r:1.1+Math.random()*1.1});
+(function seed(){
+  let tries=0;
+  while(nodes.length<300&&tries++<9000){const x=40+Math.random()*920,y=40+Math.random()*570;
+    if(!inside(x,y)||nodes.some(n=>(n.hx-x)**2+(n.hy-y)**2<484))continue;nodes.push(mk(x,y))}
+  REG.forEach(g=>{let c=0,t=0;while(c<9&&t++<400){const a=Math.random()*6.283,d=Math.sqrt(Math.random())*g.r*.85,x=g.x+Math.cos(a)*d,y=g.y+Math.sin(a)*d;
+    if(!inside(x,y)||nodes.some(n=>(n.hx-x)**2+(n.hy-y)**2<121))continue;nodes.push(mk(x,y));c++}});
+  nodes.forEach(n=>{let b=-1,bd=1e9;REG.forEach((g,i)=>{const d=Math.hypot(g.x-n.hx,g.y-n.hy);if(d<g.r&&d<bd){bd=d;b=i}});n.reg=b;nbr.push([])});
+  for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+    if(nbr[i].length>=6||nbr[j].length>=6)continue;
+    if((nodes[i].hx-nodes[j].hx)**2+(nodes[i].hy-nodes[j].hy)**2<54*54){const e={a:i,b:j,w:.2+Math.random()*.2};nbr[i].push(edges.length);nbr[j].push(edges.length);edges.push(e)}}
+})();
+const regEdges=REG.map((g,gi)=>edges.filter(e=>nodes[e.a].reg===gi&&nodes[e.b].reg===gi));
+
+/* detailed neurons */
+function grow(n,x,y,ang,len,dep,r){const x2=x+Math.cos(ang)*len,y2=y+Math.sin(ang)*len;n.segs.push([x,y,x2,y2,dep]);
+  if(dep>=3){n.tips.push([x2,y2]);return}
+  for(let b=0;b<2;b++)grow(n,x2,y2,ang+(b?1:-1)*(.4+r()*.5),len*.68,dep+1,r)}
+function buildNeurons(gi){
+  const g=REG[gi],r=rng(gi*977+13),ns=[],N=5;
+  for(let k=0;k<N;k++){const a=k/N*6.283+r()*.8,d=g.r*(.2+r()*.45);
+    ns.push({sx:g.x+Math.cos(a)*d,sy:g.y+Math.sin(a)*d,sr:Math.max(2.2,g.r*.065),segs:[],tips:[],ax:[],tm:r()*2,spike:-1,flash:0,rel:0,tgt:0,tip:null})}
+  ns.forEach(n=>{const nd=5+((r()*3)|0);for(let i=0;i<nd;i++)grow(n,n.sx,n.sy,r()*6.283,g.r*.2,0,r)});
+  ns.forEach((n,k)=>{const t=ns[(k+1)%N];let best=t.tips[0],bd=1e9;
+    t.tips.forEach(p=>{const d=(p[0]-n.sx)**2+(p[1]-n.sy)**2;if(d<bd){bd=d;best=p}});
+    const dx=best[0]-n.sx,dy=best[1]-n.sy,dist=Math.hypot(dx,dy)||1,ux=dx/dist,uy=dy/dist,gap=n.sr*.8,amp=(r()-.5)*dist*.5,pts=[];
+    for(let i=0;i<=7;i++){const s=i/7,bend=Math.sin(s*Math.PI)*amp,f=s*(1-gap/dist);pts.push([n.sx+dx*f-uy*bend,n.sy+dy*f+ux*bend])}
+    pts[7]=[best[0]-ux*gap,best[1]-uy*gap];n.ax=pts;n.tgt=(k+1)%N;n.tip=best});
+  return ns}
+
+/* ================= state ================= */
+const A=new Float32Array(REG.length),At=new Float32Array(REG.length);
+const chC={},chT={};Object.keys(CH).forEach(k=>{chC[k]=.4;chT[k]=.4});
+let colC=[0,240,255],colT=[0,240,255],atC=[.25,.4,.4,.4],atT=[.25,.4,.4,.4],valC=0,valT=0;
+let mix={items:[],focus:-1,sig:"",src:"none"};
+let mode="auto",manualReg=-1,wideUntil=0,hoverReg=-1,careOn=false,ltp=0;
+const cam={x:500,y:320,z:1},camT={x:500,y:320,z:1};
+const toScreen=(x,y)=>[(x-cam.x)*K*cam.z+W/2,(y-cam.y)*K*cam.z+H/2];
+const toBrain=(sx,sy)=>[(sx-W/2)/(K*cam.z)+cam.x,(sy-H/2)/(K*cam.z)+cam.y];
+
+const inputs={stress:$("#stress"),learn:$("#learn"),rest:$("#rest"),social:$("#social")};
+const IK=Object.keys(inputs);
+function readSliders(){for(const k of IK){const el=inputs[k],v=+el.value;el.style.setProperty("--p",v+"%");el.closest(".ctl").querySelector("output").textContent=v+"%"}}
+const sv=()=>IK.map(k=>inputs[k].value/100);
+
+function setMix(items,src,strength=1){
+  const top=items.length?items[0].w:1,tw=items.reduce((s,x)=>s+x.w,0)||1,chd={},col=[0,0,0],at=[0,0,0,0];let val=0;
+  At.fill(0);
+  items.forEach(({e,w})=>{const rel=w/top,k=w/tw;
+    for(const r in e.reg)At[RI[r]]+=rel*e.reg[r]*strength;
+    for(const c in e.ch)chd[c]=(chd[c]||0)+rel*(e.ch[c]-.4);
+    const cc=e.col.split(",").map(Number);for(let i=0;i<3;i++)col[i]+=cc[i]*k;
+    for(let i=0;i<4;i++)at[i]+=e.at[i]*k;val+=e.val*k});
+  for(let i=0;i<At.length;i++)At[i]=clamp(At[i],0,1);
+  for(const c in CH)chT[c]=clamp(.4+(chd[c]||0)*strength,.05,1);
+  if(items.length){colT=col;atT=at;valT=val}else{colT=[185,167,255];atT=[.25,.4,.4,.4];valT=0}
+  const f=items.length?RI[items[0].e.focus]:-1,sig=items.map(x=>x.e.id).join("+")+src;
+  if(f!==mix.focus)wideUntil=performance.now()+(f>=0&&mix.focus>=0&&cam.z>1.5?1000:350);
+  if(sig!==mix.sig&&src==="text")mode="auto";
+  mix={items,focus:f,sig,src,val};syncBtns();
+}
+function sliderItems(){
+  const[s,l,r,c]=sv(),cand=[["overwhelm",s*1.15],["exhaust",(s>.5&&r<.3)?(s*.6+(1-r)*.4)*.8:0],["curiosity",l],["calm",r],["belonging",c]]
+    .filter(x=>x[1]>.25).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  return cand.map(([id,w])=>({e:EB[id],w}));
+}
+function applySliders(){careOn=false;const it=sliderItems();setMix(it,"sliders",.9);renderInsight(it,[],false)}
+
+/* ================= insight panel ================= */
+const ins=$("#ins");let lastSig="";
+function valLabel(v){return v>.25?"POSITIVE":v<-.25?"DIFFICULT":"MIXED"}
+function renderInsight(items,hits,force){
+  ins.classList.remove("care");
+  if(careOn){return}
+  const sig=items.map(x=>x.e.id).join("+")+(hits.length?"t":"s");
+  if(!items.length){
+    ins.style.setProperty("--ic","185,167,255");lastSig="";
+    ins.innerHTML=`<div class="itop"><div class="orb"></div><div><small>BRAIN READING</small><h3>Listening…</h3></div></div>
+    <p class="ihead">Write a few words about how you feel, or tap a feeling above.</p>
+    <p class="feel">Your words are read for emotion, including context like negation ("not happy"), intensity ("so tired") and emoji. The brain on the left lights up where that feeling lives, then zooms in.</p>
+    <p class="fine">Not a diagnosis. A visual metaphor for how feelings and habits shape the brain.</p>`;return}
+  if(sig===lastSig&&!force)return;lastSig=sig;
+  const p=items[0].e,val=mix.val??items.reduce((s,x)=>s+x.e.val,0)/items.length;
+  const regs=REG.map((g,i)=>({g,i,v:At[i]})).sort((a,b)=>b.v-a.v).slice(0,4).filter(x=>x.v>.15);
+  ins.style.setProperty("--ic",p.col);
+  const multi=items.length>1;
+  ins.innerHTML=`
+  <div class="itop"><div class="orb"></div><div><small>${multi?"DOMINANT SIGNAL":"BRAIN READING"}</small><h3>${esc(p.label)}</h3></div></div>
+  <p class="ihead">${esc(p.head)}</p>
+  <div><div class="spec"><i style="left:${(val+1)/2*100}%"></i></div><div class="spl" style="margin-top:8px"><span>difficult</span><span>${valLabel(val)}</span><span>positive</span></div></div>
+  <div class="sec">WHERE IT HAPPENS</div>
+  <div class="regs">${regs.map(({g,i})=>`<button class="reg" data-go="${i}"><b>${esc(g.n)}</b><em>zoom ⌖</em><span>${esc(g.role)}</span><div class="at"><i data-r="${i}"></i></div></button>`).join("")}</div>
+  <div class="sec">BRAIN CHEMISTRY</div>
+  <div>${Object.entries(CH).map(([k,[n,c,d]])=>`<div class="chem"><div>${n}<small>${d}</small></div><div class="t"><i data-c="${k}" style="background:rgb(${c})"></i></div><output data-co="${k}" style="color:rgb(${c})">·</output></div>`).join("")}</div>
+  <div class="sec">WHAT'S HAPPENING</div>
+  <ol class="story">${p.steps.map(([t,d])=>`<li><b>${esc(t)}</b><span>${esc(d)}</span></li>`).join("")}</ol>
+  <div class="sec">YOU MAY NOTICE</div>
+  <p class="feel">${esc(p.feel)}</p>
+  ${multi?`<div class="sec">ALSO IN THE MIX</div><div class="mixrow">${items.slice(1).map(x=>`<span class="tag" style="color:rgb(${x.e.col})" title="${esc(x.e.head)}">${esc(x.e.label)}</span>`).join("")}</div>`:""}
+  ${hits.length?`<div class="sec">WORDS I PICKED UP</div><div class="mixrow">${hits.map(h=>`<span class="tag" style="color:rgb(${h.e.col})">${esc(h.w)} · ${esc(h.e.label.split(" ")[0].toLowerCase())}${h.neg?" (negated)":""}</span>`).join("")}</div>`:""}
+  <div class="sec">TRY THIS</div>
+  <ul class="tips">${p.tips.map(([t,d])=>`<li><b>${esc(t)}</b><span>${esc(d)}</span></li>`).join("")}</ul>
+  <p class="fine">Not a diagnosis. A simplified picture of how brain regions and chemicals relate to feelings.</p>`;
+}
+function renderNeutral(){
+  lastSig="";ins.style.setProperty("--ic","185,167,255");
+  ins.innerHTML=`<div class="itop"><div class="orb"></div><div><small>BRAIN READING</small><h3>No strong signal yet</h3></div></div>
+  <p class="ihead">I couldn't pick out a clear feeling from those words.</p>
+  <p class="feel">Try adding how it felt in your body, who was involved, or what you wish had happened. For example: "I feel nervous and excited about the trip."</p>`;
+}
+function renderCare(){
+  careOn=true;lastSig="";ins.classList.add("care");ins.style.setProperty("--ic","185,167,255");
+  ins.innerHTML=`<div class="itop"><div class="orb"></div><div><small>A GENTLE NOTE</small><h3>Thank you for writing this</h3></div></div>
+  <p class="ihead">Some of what you wrote sounds heavy.</p>
+  <p class="feel">This is only a visualization and can't support you the way a person can. If you might hurt yourself or feel unsafe, please contact your local emergency number or a crisis line, or reach someone you trust right now.</p>`;
+}
+ins.addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(!b)return;mode="manual";manualReg=+b.dataset.go;syncBtns()});
+
+/* ================= text input ================= */
+const ta=$("#log");let tmr=0,lastWords=0,loops=0,entries=[];
+const FC=[["In love","I'm falling in love and I can't stop smiling."],["One-sided love","I love him but it's one-sided and he doesn't love me back."],["Anxious","I'm so anxious about tomorrow, what if everything goes wrong?"],["Proud","I finally finished my project and I'm so proud of myself!"],["Grateful","I'm really grateful for my friends today, they showed up for me."],["Lonely","I feel so alone, nobody noticed I was gone."],["Angry","I'm furious, we had a huge argument and I'm still shaking."],["Exhausted","I'm completely drained and burnt out, I can't get up."],["Nostalgic","Found old photos from childhood, I miss those days so much."],["Awe","Watching the sunset over the mountains gave me goosebumps."],["Curious","I'm obsessed with learning how the brain works, it's so fascinating."],["Heartbroken","We broke up and I keep replaying everything 💔"]];
+$("#fchips").innerHTML=FC.map(([l],i)=>`<button class="fc" data-i="${i}">${esc(l)}</button>`).join("");
+$("#fchips").addEventListener("click",e=>{const b=e.target.closest(".fc");if(!b)return;ta.value=FC[+b.dataset.i][1];lastWords=99;readNow();ta.focus()});
+function readNow(){
+  const v=ta.value;if(!v.trim())return;
+  const a=analyze(v);
+  if(a.crisis){mode="wide";setMix([],"text");renderCare();syncBtns();return}
+  if(!a.items.length){if(a.words>=3){setMix([],"text");renderNeutral()}return}
+  careOn=false;setMix(a.items,"text",.55+.45*a.strength);
+  const at=atT;inputs.stress.value=Math.max(8,at[0]*100)|0;inputs.learn.value=clamp(at[1]*100,5,100)|0;inputs.rest.value=clamp(at[2]*100,5,100)|0;inputs.social.value=clamp(at[3]*100,5,100)|0;readSliders();
+  renderInsight(a.items,a.hits.slice(0,8),false);save();
+}
+const thoughts=[];
+function thought(w){if(!w||w.length<3)return;const e=wordEmo(w);if(!e)return;
+  thoughts.push({t:w,life:1,ox:(Math.random()-.5)*120,oy:(Math.random()-.5)*60,vy:-22-Math.random()*14,c:e.col,off:0});if(thoughts.length>30)thoughts.shift();
+  const gi=RI[e.focus];for(let i=0;i<4;i++){const n=nodes[(Math.random()*nodes.length)|0];if(n.reg===gi)fire(nodes.indexOf(n),0)}}
+ta.addEventListener("input",()=>{
+  const v=ta.value;fireRand(1);$("#scan").textContent=`${v.length} chars · ctrl+enter to transmit`;
+  const ws=v.toLowerCase().match(/[a-z']+/g)||[],done=/[\s.,!?]$/.test(v)?ws.length:ws.length-1;
+  while(lastWords<done){thought(ws[lastWords]);lastWords++}if(lastWords>done)lastWords=Math.max(0,done);
+  clearTimeout(tmr);tmr=setTimeout(readNow,260)});
+ta.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey))submit()});
+
+/* vault */
+const store={get(){try{return JSON.parse(localStorage.getItem("neuro-synapse")||"null")}catch(e){return null}},set(v){try{localStorage.setItem("neuro-synapse",JSON.stringify(v))}catch(e){}}};
+const save=()=>store.set({entries,loops,sl:Object.fromEntries(IK.map(k=>[k,+inputs[k].value]))});
+const updCount=()=>{$("#count").textContent=`SHARED CORONAL LOOPS COMPILATION: [${loops}]`};
+function render(en,anim){
+  const feed=$("#feed");feed.querySelector(".empty")?.remove();
+  const e=document.createElement("div");e.className="entry";e.style.setProperty("--c",en.col);if(!anim)e.style.animation="none";
+  const t=document.createElement("time");t.textContent=en.t;const m=document.createElement("em");m.textContent=`[${en.tag}]`;
+  const p=document.createElement("div");p.textContent=en.txt;e.append(t,m,p);feed.prepend(e)}
+function submit(){
+  const txt=ta.value.trim();
+  if(!txt){ta.focus();ta.placeholder="// ENTRY EMPTY: write a few words, then transmit.";return}
+  const a=analyze(txt);readNow();
+  const p=a.items[0]?.e,en={txt,tag:a.crisis?"CARE NOTE":p?p.label.toUpperCase():"NEUTRAL",col:p?`rgb(${p.col})`:"rgb(185,167,255)",t:new Date().toLocaleTimeString()};
+  loops+=1+Math.floor(txt.split(/[.!?\n]+/).filter(x=>x.trim()).length/2);
+  entries.unshift(en);if(entries.length>50)entries.pop();
+  render(en,true);updCount();save();fireRand(30);
+  if(p&&RI[p.focus]>=0){const g=REG[RI[p.focus]];ripples.push({x:g.x,y:g.y,t:0,r:g.r})}
+  ta.value="";lastWords=0;$("#scan").textContent="transmitted // brain updated";
+}
+$("#send").addEventListener("click",submit);
+
+/* sliders & presets */
+const PRESETS={burnout:[92,15,10,18],balance:[35,55,55,55],recovery:[10,70,90,75]};
+for(const k of IK)inputs[k].addEventListener("input",()=>{readSliders();clearTimeout(inputs._t);inputs._t=setTimeout(()=>{applySliders();save()},180)});
+document.querySelectorAll("[data-p]").forEach(b=>b.addEventListener("click",()=>{PRESETS[b.dataset.p].forEach((v,i)=>inputs[IK[i]].value=v);readSliders();applySliders();save()}));
+readSliders();
+
+/* camera buttons */
+function syncBtns(){$("#bWide").classList.toggle("on",mode==="wide");$("#bAuto").classList.toggle("on",mode==="auto")}
+$("#bWide").addEventListener("click",()=>{mode="wide";syncBtns()});
+$("#bAuto").addEventListener("click",()=>{mode="auto";wideUntil=performance.now()+300;syncBtns()});
+addEventListener("keydown",e=>{if(e.key==="Escape"&&document.activeElement!==ta){mode="wide";syncBtns()}});
+
+/* pointer */
+const ptr={x:-999,y:-999,on:false};
+function pickReg(sx,sy){const[x,y]=toBrain(sx,sy);let b=-1,bd=1e9;REG.forEach((g,i)=>{const d=Math.hypot(g.x-x,g.y-y)/g.r;if(d<1&&d<bd){bd=d;b=i}});return b}
+cv.addEventListener("pointermove",e=>{const r=cv.getBoundingClientRect();ptr.x=e.clientX-r.left;ptr.y=e.clientY-r.top;ptr.on=true;hoverReg=pickReg(ptr.x,ptr.y);cv.style.cursor=hoverReg>=0?"pointer":"crosshair"});
+cv.addEventListener("pointerleave",()=>{ptr.on=false;hoverReg=-1});
+cv.addEventListener("pointerdown",e=>{
+  const r=cv.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top,gi=pickReg(sx,sy);
+  if(gi>=0){mode="manual";manualReg=gi;syncBtns();const g=REG[gi];ripples.push({x:g.x,y:g.y,t:0,r:g.r});return}
+  if(cam.z>1.4){mode="wide";syncBtns();return}
+  const[x,y]=toBrain(sx,sy);let b=0,bd=1e9;nodes.forEach((n,i)=>{const d=(n.x-x)**2+(n.y-y)**2;if(d<bd){bd=d;b=i}});fire(b,0);ripples.push({x,y,t:0,r:40})});
+
+/* ================= simulation helpers ================= */
+function fire(i,d){const n=nodes[i];n.act=1;if(pls.length>520)return;
+  const es=nbr[i];for(let k=0;k<2&&es.length;k++){const ei=es[(Math.random()*es.length)|0];pls.push({e:ei,t:0,dir:edges[ei].a===i?1:-1,d})}}
+function fireRand(k){for(let i=0;i<k;i++)fire((Math.random()*nodes.length)|0,1)}
+
+function releaseNT(n,ns,g,key){
+  const t=ns[n.tgt];t.flash=1;n.rel=1;ltp++;
+  for(let i=0;i<10;i++)NT.push({sx:n.ax[7][0],sy:n.ax[7][1],tx:n.tip[0],ty:n.tip[1],t:-Math.random()*.25,k:key,sr:n.sr,jx:(Math.random()-.5),jy:(Math.random()-.5)});
+  if(NT.length>240)NT.splice(0,NT.length-240)}
+
+function drawDetail(g,gi,dt,da,acc,S,key){
+  const ns=NEU[gi]||(NEU[gi]=buildNeurons(gi)),rate=.35+A[gi]*2;
+  const lw=Math.max(.35,g.r*.012);
+  ctx.lineCap="round";ctx.lineJoin="round";
+  ns.forEach(n=>{
+    n.tm-=dt;if(n.tm<=0&&n.spike<0){n.spike=0;n.tm=(.5+Math.random())/rate}
+    if(n.spike>=0){n.spike+=dt*(.9+S*.8);if(n.spike>=1){n.spike=-1;releaseNT(n,ns,g,key)}}
+    n.flash*=Math.exp(-dt*2.5);n.rel*=Math.exp(-dt*3);
+    for(let d=0;d<=3;d++){ctx.beginPath();for(const s of n.segs)if(s[4]===d){ctx.moveTo(s[0],s[1]);ctx.lineTo(s[2],s[3])}
+      ctx.strokeStyle=`rgba(${acc},${(.3+n.flash*.55)*da})`;ctx.lineWidth=lw*(1.7-d*.35);ctx.stroke()}
+    // axon
+    ctx.beginPath();ctx.moveTo(n.ax[0][0],n.ax[0][1]);for(let i=1;i<8;i++)ctx.lineTo(n.ax[i][0],n.ax[i][1]);
+    ctx.strokeStyle=`rgba(${acc},${.55*da})`;ctx.lineWidth=lw*1.2;ctx.stroke();
+    if(n.spike>=0){const f=n.spike*7,i=Math.min(6,f|0),u=f-i,x=lerp(n.ax[i][0],n.ax[i+1][0],u),y=lerp(n.ax[i][1],n.ax[i+1][1],u);
+      ctx.fillStyle=`rgba(255,255,255,${.95*da})`;ctx.beginPath();ctx.arc(x,y,n.sr*.32,0,6.283);ctx.fill()}
+    // soma
+    const gr=ctx.createRadialGradient(n.sx,n.sy,0,n.sx,n.sy,n.sr*1.2);gr.addColorStop(0,`rgba(255,255,255,${.9*da})`);gr.addColorStop(.35,`rgba(${acc},${.85*da})`);gr.addColorStop(1,`rgba(${acc},${.15*da})`);
+    ctx.fillStyle=gr;ctx.beginPath();ctx.arc(n.sx,n.sy,n.sr*(1+n.flash*.25),0,6.283);ctx.fill();
+    // bouton + receptor
+    const bx=n.ax[7][0],by=n.ax[7][1];
+    ctx.fillStyle=`rgba(${CH[key][1]},${(.55+n.rel*.45)*da})`;ctx.beginPath();ctx.arc(bx,by,n.sr*(.38+n.rel*.2),0,6.283);ctx.fill();
+    ctx.strokeStyle=`rgba(255,255,255,${(.25+n.flash*.5)*da})`;ctx.lineWidth=lw*.8;ctx.beginPath();ctx.arc(n.tip[0],n.tip[1],n.sr*.4,0,6.283);ctx.stroke();
+  });
+  // neurotransmitters
+  for(let i=NT.length-1;i>=0;i--){const p=NT[i];p.t+=dt*.9;if(p.t>=1.1){NT.splice(i,1);continue}
+    if(p.t<0)continue;const e=1-(1-Math.min(1,p.t))**2,x=lerp(p.sx,p.tx,e)+p.jx*p.sr*1.4*Math.sin(p.t*3.14),y=lerp(p.sy,p.ty,e)+p.jy*p.sr*1.4*Math.sin(p.t*3.14);
+    ctx.fillStyle=`rgba(${CH[p.k][1]},${(1-Math.max(0,p.t-.8)*3)*da})`;ctx.beginPath();ctx.arc(x,y,Math.max(.35,p.sr*.16),0,6.283);ctx.fill()}
+  return ns[0]}
+
+function label(gi,al,acc){
+  const g=REG[gi],[sx,sy]=toScreen(g.x,g.y);if(sx<-60||sx>W+60||sy<-60||sy>H+60)return;
+  const R=Math.min(g.r*K*cam.z*.85,120),sg=sx>W*.62?-1:1,x1=sx+sg*R*.7,y1=sy-R*.7,x2=x1+sg*26,y2=y1-20;
+  ctx.globalAlpha=al;ctx.strokeStyle=`rgba(${acc},.7)`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
+  ctx.font=`600 11px ${"ui-monospace,Menlo,Consolas,monospace"}`;const tw=ctx.measureText(g.n.toUpperCase()).width;
+  ctx.lineTo(x2+sg*(tw+8),y2);ctx.stroke();ctx.fillStyle="#fff";ctx.textAlign=sg>0?"left":"right";ctx.fillText(g.n.toUpperCase(),x2+sg*4,y2-5);ctx.globalAlpha=1}
+
+/* ================= main loop ================= */
+const els={state:$("#state"),eye:$("#cEye"),name:$("#cName"),role:$("#cRole")};
+const setT=(el,v)=>{if(el._v!==v){el.textContent=v;el._v=v}};
+let last=performance.now(),fpsAcc=0,fpsN=0,t0=last,ripT=0;
+function frame(now){
+  const dt=Math.max(0,Math.min(.05,(now-last)/1000));last=now;
+  // ease state
+  const f1=1-Math.exp(-dt*2.6);
+  for(let i=0;i<A.length;i++)A[i]+=(At[i]-A[i])*f1;
+  for(const k in chC)chC[k]+=(chT[k]-chC[k])*f1;
+  for(let i=0;i<3;i++)colC[i]+=(colT[i]-colC[i])*f1;
+  for(let i=0;i<4;i++)atC[i]+=(atT[i]-atC[i])*f1;valC+=(valT-valC)*f1;
+  const[S,L,R,C]=atC,calm=clamp((L+R)/2*(1-S*.8)+C*.15,0,1),plast=clamp(calm*.7+L*.3-S*.5,0,1);
+  const acc=rs(colC);
+  document.documentElement.style.setProperty("--acc",acc);
+  // camera
+  let rg=-1;
+  if(mode==="manual"&&manualReg>=0)rg=manualReg;else if(mode==="auto"&&now>wideUntil&&mix.focus>=0)rg=mix.focus;
+  if(rg<0){camT.x=500;camT.y=320;camT.z=1}else{const g=REG[rg];camT.x=g.x;camT.y=g.y;camT.z=clamp((Math.min(W,H)/K)/(g.r*3.3),1.9,5.2)}
+  const fc=1-Math.exp(-dt*2.3);cam.x+=(camT.x-cam.x)*fc;cam.y+=(camT.y-cam.y)*fc;cam.z=Math.exp(lerp(Math.log(cam.z),Math.log(camT.z),fc));
+  const zf=sstep((cam.z-1.25)/1.3),netA=1-.55*zf;
+
+  ctx.setTransform(DPR,0,0,DPR,0,0);ctx.clearRect(0,0,W,H);
+  ctx.save();ctx.translate(W/2,H/2);ctx.scale(K*cam.z,K*cam.z);ctx.translate(-cam.x,-cam.y);
+  ctx.lineJoin="round";
+  // body
+  ctx.fillStyle="rgba(12,20,42,.7)";ctx.fill(stem);ctx.fillStyle="rgba(14,24,48,.82)";ctx.fill(cbl);
+  const bg=ctx.createRadialGradient(500,250,40,500,250,520);bg.addColorStop(0,"rgba(26,44,86,.88)");bg.addColorStop(1,"rgba(8,14,30,.92)");
+  ctx.fillStyle=bg;ctx.fill(cereb);
+  ctx.fillStyle=`rgba(${acc},${.04+calm*.03})`;ctx.fill(cereb);
+  ctx.save();ctx.clip(cereb);ctx.strokeStyle=`rgba(${acc},.12)`;ctx.lineWidth=1.2;ctx.stroke(sulci);ctx.restore();
+  ctx.save();ctx.clip(cbl);ctx.strokeStyle=`rgba(${acc},.14)`;ctx.lineWidth=1;ctx.beginPath();
+  for(let i=0;i<7;i++){ctx.moveTo(735,425+i*13);ctx.quadraticCurveTo(820,420+i*13+14,915,430+i*12)}ctx.stroke();ctx.restore();
+  const lw=1.8/Math.sqrt(cam.z);
+  ctx.strokeStyle=`rgba(${acc},.22)`;ctx.lineWidth=lw;ctx.stroke(fissure);
+  ctx.strokeStyle=`rgba(${acc},.55)`;ctx.lineWidth=lw;ctx.stroke(cereb);ctx.strokeStyle=`rgba(${acc},.35)`;ctx.stroke(cbl);ctx.stroke(stem);
+
+  // region glows
+  ctx.globalCompositeOperation="lighter";
+  REG.forEach((g,i)=>{const a=A[i];if(a<.03)return;
+    const fl=S>.55?.72+Math.random()*.28:1,pul=.88+.12*Math.sin(now*.004*(1+S)+i),rad=g.r*(1.15+.25*a)*pul;
+    const gr=ctx.createRadialGradient(g.x,g.y,0,g.x,g.y,rad);gr.addColorStop(0,`rgba(${acc},${.5*a*fl})`);gr.addColorStop(.6,`rgba(${acc},${.14*a*fl})`);gr.addColorStop(1,`rgba(${acc},0)`);
+    ctx.fillStyle=gr;ctx.beginPath();ctx.arc(g.x,g.y,rad,0,6.283);ctx.fill()});
+  ctx.globalCompositeOperation="source-over";
+  // target rings
+  REG.forEach((g,i)=>{const a=A[i];if(a<.35&&hoverReg!==i)return;
+    ctx.save();ctx.setLineDash([4/Math.sqrt(cam.z),7/Math.sqrt(cam.z)]);ctx.lineDashOffset=-now*.012;ctx.strokeStyle=`rgba(${acc},${hoverReg===i?.9:.4*a})`;ctx.lineWidth=lw*.7;
+    ctx.beginPath();ctx.arc(g.x,g.y,g.r*1.05,0,6.283);ctx.stroke();ctx.restore()});
+
+  // network update
+  const wave=((now*.12)%1300)-150,decay=lerp(.01,.12,S)*(1-R*.85)*dt,jit=S>.5?(S-.4)*2.2:0;
+  for(let i=0;i<nodes.length;i++){const n=nodes[i],a=n.reg>=0?A[n.reg]:0;
+    n.act*=Math.exp(-dt*2.4);
+    n.x=n.hx+Math.sin(now*.0006+n.ph)*2.2*(1-S*.5)+(Math.random()-.5)*jit;
+    n.y=n.hy+Math.cos(now*.0005+n.ph*1.3)*2.2*(1-S*.5)+(Math.random()-.5)*jit;
+    const rate=.05+a*(1.4+S*1.8)+(Math.abs(n.hx-wave)<26?3.5:0);
+    if(Math.random()<rate*dt)fire(i,0)}
+  // edges
+  let syn=0,wsum=0;
+  ctx.beginPath();ctx.strokeStyle=`rgba(${acc},${(.08+calm*.05)*netA})`;ctx.lineWidth=.6;
+  for(const e of edges){e.w*=1-decay;if(e.w>.3)syn++;wsum+=e.w;const a=nodes[e.a],b=nodes[e.b];ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y)}ctx.stroke();
+  for(const e of edges){const a=nodes[e.a],b=nodes[e.b],hot=Math.max(a.act,b.act);if(hot<.25&&e.w<.45)continue;
+    ctx.strokeStyle=`rgba(${acc},${Math.min(.85,(.12+e.w*.5+hot*.45)*netA)})`;ctx.lineWidth=(.6+e.w*1.2+hot*.8);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
+  // pulses
+  for(let i=pls.length-1;i>=0;i--){const p=pls[i],e=edges[p.e];p.t+=dt*(.9+S*.7);
+    if(p.t>=1){const ti=p.dir>0?e.b:e.a,tn=nodes[ti];
+      if(tn.act>.3){ltp++;e.w=Math.min(1,e.w+.04*(.4+L)*(1-S*.6))}
+      tn.act=Math.max(tn.act,.85);
+      if(Math.random()<.55*Math.pow(.75,p.d)&&nbr[ti].length&&pls.length<520){const ei=nbr[ti][(Math.random()*nbr[ti].length)|0];pls.push({e:ei,t:0,dir:edges[ei].a===ti?1:-1,d:p.d+1})}
+      pls.splice(i,1);continue}
+    const a=nodes[p.dir>0?e.a:e.b],b=nodes[p.dir>0?e.b:e.a],x=lerp(a.x,b.x,p.t),y=lerp(a.y,b.y,p.t);
+    ctx.fillStyle=`rgba(${acc},${.25*netA})`;ctx.beginPath();ctx.arc(x,y,3.4,0,6.283);ctx.fill();ctx.fillStyle=`rgba(255,255,255,${.85*netA})`;ctx.beginPath();ctx.arc(x,y,1.5,0,6.283);ctx.fill()}
+  // nodes
+  ctx.fillStyle=`rgba(${acc},${.55*netA})`;ctx.beginPath();
+  for(const n of nodes){if(n.act>.1)continue;ctx.moveTo(n.x+n.r,n.y);ctx.arc(n.x,n.y,n.r,0,6.283)}ctx.fill();
+  for(const n of nodes){if(n.act<=.1)continue;const r=n.r*(1+n.act*1.2);
+    ctx.fillStyle=`rgba(${acc},${.3*netA*n.act})`;ctx.beginPath();ctx.arc(n.x,n.y,r*2.8,0,6.283);ctx.fill();
+    ctx.fillStyle=`rgba(255,255,255,${Math.min(1,.4+n.act*.6)*netA})`;ctx.beginPath();ctx.arc(n.x,n.y,r,0,6.283);ctx.fill()}
+  // stress sparks / positive ripples at focus
+  if(mix.focus>=0){const g=REG[mix.focus];
+    if(valC<-.2&&regEdges[mix.focus].length&&Math.random()<dt*9){const e=regEdges[mix.focus][(Math.random()*regEdges[mix.focus].length)|0];sparks.push({a:nodes[e.a],b:nodes[e.b],life:1})}
+    ripT-=dt;if(valC>.2&&ripT<=0){ripples.push({x:g.x,y:g.y,t:0,r:g.r});ripT=1.5}}
+  for(let i=sparks.length-1;i>=0;i--){const s=sparks[i];s.life-=dt*5;if(s.life<=0){sparks.splice(i,1);continue}
+    ctx.strokeStyle=`rgba(255,${60+s.life*150|0},${120+s.life*80|0},${s.life})`;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(s.a.x,s.a.y);
+    for(let k=1;k<5;k++){const t=k/5;ctx.lineTo(lerp(s.a.x,s.b.x,t)+(Math.random()-.5)*8,lerp(s.a.y,s.b.y,t)+(Math.random()-.5)*8)}ctx.lineTo(s.b.x,s.b.y);ctx.stroke()}
+  for(let i=ripples.length-1;i>=0;i--){const r=ripples[i];r.t+=dt*.7;if(r.t>=1){ripples.splice(i,1);continue}
+    ctx.strokeStyle=`rgba(${acc},${(1-r.t)*.5})`;ctx.lineWidth=lw*1.2;ctx.beginPath();ctx.arc(r.x,r.y,r.r*(.3+r.t*1.6),0,6.283);ctx.stroke()}
+
+  // detailed neurons near the camera
+  let det=null,detKey="dopa";
+  if(zf>.02){let bk=-1e9;for(const k in CH)if(chC[k]-(k==="gaba"?.1:0)>bk){bk=chC[k];detKey=k}
+    REG.forEach((g,gi)=>{if(Math.hypot(g.x-cam.x,g.y-cam.y)<g.r*1.4){const r=drawDetail(g,gi,dt,zf,acc,S,detKey);if(!det||gi===(mix.focus>=0?mix.focus:gi))det={n:r,gi}}})}
+  ctx.restore();
+
+  // screen-space overlays
+  ctx.textBaseline="alphabetic";
+  REG.forEach((g,i)=>{const isFocus=det&&det.gi===i&&zf>.5;if(hoverReg===i&&!isFocus)label(i,1,acc);else if(A[i]>.3&&zf<.9)label(i,(1-zf)*Math.min(1,A[i]*1.6),acc)});
+  if(det&&det.n&&zf>.5){const bx=det.n.ax[7][0],by=det.n.ax[7][1],[sx,sy]=toScreen(bx,by),c=CH[detKey];
+    ctx.globalAlpha=zf;ctx.strokeStyle=`rgb(${c[1]})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+30,sy-26);ctx.lineTo(sx+130,sy-26);ctx.stroke();
+    ctx.font="600 11px ui-monospace,Menlo,Consolas,monospace";ctx.textAlign="left";ctx.fillStyle=`rgb(${c[1]})`;ctx.fillText(c[0].toUpperCase()+" RELEASED",sx+34,sy-31);
+    ctx.fillStyle="#9fb6c2";ctx.font="11px ui-monospace,Menlo,Consolas,monospace";ctx.fillText("across the synapse",sx+34,sy-12);ctx.globalAlpha=1}
+  // floating words
+  for(let i=thoughts.length-1;i>=0;i--){const t=thoughts[i];t.off+=t.vy*dt;t.life-=dt*.4;if(t.life<=0){thoughts.splice(i,1);continue}
+    const gi=mix.focus>=0?mix.focus:RI.pfc,[sx,sy]=toScreen(REG[gi].x,REG[gi].y);
+    ctx.font=`600 14px ${"Space Grotesk,Avenir Next,Segoe UI,system-ui,sans-serif"}`;ctx.textAlign="center";ctx.fillStyle=`rgba(${t.c},${Math.min(1,t.life*1.6)})`;ctx.fillText(t.t,clamp(sx+t.ox,30,W-30),clamp(sy+t.oy+t.off-40,24,H-24))}
+  // minimap
+  if(zf>.1){const ms=.1,mw=BW*ms,mh=BH*ms;ctx.save();ctx.globalAlpha=zf;ctx.translate(16,H-mh-18);ctx.scale(ms,ms);
+    ctx.fillStyle="rgba(0,0,0,.45)";ctx.fillRect(-40,-30,BW+80,BH+60);ctx.strokeStyle=`rgba(${acc},.8)`;ctx.lineWidth=7;ctx.stroke(cereb);ctx.stroke(cbl);ctx.stroke(stem);
+    REG.forEach((g,i)=>{if(A[i]>.3){ctx.fillStyle=`rgba(${acc},${A[i]})`;ctx.beginPath();ctx.arc(g.x,g.y,g.r*.6,0,6.283);ctx.fill()}});
+    const vw=W/(K*cam.z),vh=H/(K*cam.z);ctx.strokeStyle="#fff";ctx.lineWidth=6;ctx.strokeRect(cam.x-vw/2,cam.y-vh/2,vw,vh);ctx.restore()}
+  // hover tooltip
+  if(ptr.on&&hoverReg>=0){const g=REG[hoverReg];ctx.font="12px system-ui,sans-serif";const tw=Math.min(280,ctx.measureText(g.role).width+20),x=clamp(ptr.x+14,6,W-tw-6),y=ptr.y+18;
+    ctx.fillStyle="rgba(5,8,17,.92)";ctx.strokeStyle=`rgba(${acc},.6)`;ctx.lineWidth=1;ctx.fillRect(x,y,tw,40);ctx.strokeRect(x,y,tw,40);
+    ctx.textAlign="left";ctx.fillStyle="#fff";ctx.font="600 12px system-ui,sans-serif";ctx.fillText(g.n,x+10,y+16);ctx.fillStyle="#9fb6c2";ctx.font="11px system-ui,sans-serif";ctx.fillText(g.role.length>44?g.role.slice(0,43)+"…":g.role,x+10,y+31)}
+
+  // HUD
+  const shown=zf>.45?(det?det.gi:-1):-1;
+  if(shown>=0){const g=REG[shown];setT(els.eye,`ZOOMED // ${cam.z.toFixed(1)}×`);setT(els.name,g.n);setT(els.role,g.role)}
+  else{setT(els.eye,"WHOLE BRAIN");setT(els.name,mix.items.length?mix.items[0].e.label:"Waiting for a signal");setT(els.role,mix.items.length?mix.items[0].e.head:careOn?"Take your time. You're not alone.":"Write how you feel on the right, or tap a feeling.")}
+  setT(els.state,careOn?"HERE WITH YOU":mix.items.length?mix.items.slice(0,2).map(x=>x.e.label.split(" ")[0].toUpperCase()).join(" + "):"LISTENING");
+  els.state.style.color=`rgb(${acc})`;els.state.style.borderColor=`rgb(${acc})`;
+  // panel bars
+  $("#bPl").style.width=plast*100+"%";$("#bSt").style.width=S*100+"%";$("#bW").style.width=Math.min(100,wsum/Math.max(1,edges.length)*320)+"%";
+  setT($("#mW"),String(wsum|0));setT($("#mLt"),String(ltp));setT($("#mPl"),String(plast*100|0));setT($("#mSt"),String(S*100|0));setT($("#mSy"),String(syn));
+  ins.querySelectorAll("[data-c]").forEach(el=>{const v=chC[el.dataset.c];el.style.width=v*100+"%";const o=ins.querySelector(`[data-co="${el.dataset.c}"]`),d=v-.4;setT(o,d>.12?"▲":d<-.12?"▼":"·")});
+  ins.querySelectorAll("[data-r]").forEach(el=>{el.style.width=A[+el.dataset.r]*100+"%"});
+  fpsAcc+=dt;fpsN++;if(fpsAcc>.5){setT($("#fps"),String(Math.round(fpsN/fpsAcc)));fpsAcc=fpsN=0}
+  const s=((now-t0)/1000)|0;setT($("#clock"),String(s/60|0).padStart(2,"0")+":"+String(s%60).padStart(2,"0"));
+  requestAnimationFrame(frame)}
+
+resize();
+const saved=store.get();
+if(saved){for(const k in saved.sl||{})if(inputs[k])inputs[k].value=saved.sl[k];readSliders();loops=saved.loops||0;entries=saved.entries||[];entries.slice().reverse().forEach(e=>render(e,false));updCount()}
+renderInsight([],[],true);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
