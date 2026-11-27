@@ -1,2 +1,2 @@
 # neurosynapse
-my website on neurosynapse
+https://neurosynapsee.netlify.app/
